@@ -1,4 +1,6 @@
+// Main app: Tic Tac Toe + Snake
 import React, { useState, useEffect } from 'react';
+import SnakeGame from './Snake';
 import './App.css';
 
 // Colors from project requirements
@@ -51,38 +53,41 @@ const MODES = {
   TWO: 'Two Player',
 };
 
-// PUBLIC_INTERFACE
+/* --- MULTI-GAME APP: Tic Tac Toe (default) or Snake --- */
+
 function App() {
-  // Game state
+  // Game selector (state): "tictactoe" or "snake"
+  const [selectedGame, setSelectedGame] = useState("tictactoe");
+
+  // Tic Tac Toe State (moved into hook)
   const [squares, setSquares] = useState(INITIAL_BOARD);
   const [xIsNext, setXIsNext] = useState(true);
   const [mode, setMode] = useState(MODES.SINGLE);
   const [scores, setScores] = useState({ X: 0, O: 0, ties: 0 });
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState(null);
-  const [startingPlayer, setStartingPlayer] = useState('X'); // Tracks who starts NEW game (alternate)
+  const [startingPlayer, setStartingPlayer] = useState('X'); // who starts new game
   const [showNewGameAnim, setShowNewGameAnim] = useState(false);
 
-  // Theme (light only but preserve toggle option for structure/future)
+  // Theme (mainly for future dark mode, setting CSS var for Snake too)
   const [theme] = useState('light');
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // Session storage for scores
+  // Session storage for scores (TTT only)
   useEffect(() => {
-    // On mount: retrieve scores
     const data = sessionStorage.getItem('tttScores');
     if (data) setScores(JSON.parse(data));
-    // On start: alternate who starts
     setStartingPlayer('X');
   }, []);
   useEffect(() => {
     sessionStorage.setItem('tttScores', JSON.stringify(scores));
   }, [scores]);
 
-  // Detect winner or tie when squares change
+  // Detect winner or tie (TTT)
   useEffect(() => {
+    if (selectedGame !== "tictactoe") return;
     const win = calculateWinner(squares);
     if (win) {
       setGameOver(true);
@@ -93,32 +98,30 @@ function App() {
       setWinner(null);
       setScores(prev => ({ ...prev, ties: prev.ties + 1 }));
     }
-  }, [squares]);
+  }, [squares, selectedGame]);
 
-  // Computer Move for single player
+  // Computer Move for TTT single player
   useEffect(() => {
     if (
-      mode === MODES.SINGLE &&
-      !gameOver &&
-      !xIsNext // O is computer
-    ) {
-      // Delay for normal feel
-      const moveTimeout = setTimeout(() => {
-        const idx = getRandomMove(squares);
-        if (idx !== null) {
-          handleMove(idx);
-        }
-      }, 400);
-      return () => clearTimeout(moveTimeout);
-    }
+      selectedGame !== "tictactoe" ||
+      mode !== MODES.SINGLE ||
+      gameOver ||
+      xIsNext
+    ) return;
+    // Delay for normal feel
+    const moveTimeout = setTimeout(() => {
+      const idx = getRandomMove(squares);
+      if (idx !== null) {
+        handleMove(idx);
+      }
+    }, 400);
+    return () => clearTimeout(moveTimeout);
     // eslint-disable-next-line
-  }, [squares, mode, gameOver, xIsNext]);
+  }, [squares, mode, gameOver, xIsNext, selectedGame]);
 
   // PUBLIC_INTERFACE
   function handleMove(idx) {
-    // If occupied, ignore
     if (squares[idx] || gameOver) return;
-
     const player = xIsNext ? 'X' : 'O';
     const nextSquares = squares.slice();
     nextSquares[idx] = player;
@@ -138,7 +141,6 @@ function App() {
 
   // PUBLIC_INTERFACE
   function handleNewGame() {
-    // Alternate starting player
     const nextStarter = startingPlayer === 'X' ? 'O' : 'X';
     setStartingPlayer(nextStarter);
     setSquares(INITIAL_BOARD);
@@ -153,7 +155,7 @@ function App() {
   // PUBLIC_INTERFACE
   function handleChangeMode(newMode) {
     setMode(newMode);
-    handleNewGame(); // Clear board & reset scores when switching mode
+    handleNewGame();
   }
 
   // PUBLIC_INTERFACE
@@ -161,7 +163,7 @@ function App() {
     if (gameOver) {
       if (winner === 'X') return 'X Wins!';
       if (winner === 'O') return 'O Wins!';
-      return 'It\'s a Tie!';
+      return "It's a Tie!";
     }
     return (
       <>
@@ -173,172 +175,257 @@ function App() {
     );
   }
 
-  // Board render
+  // --- TOP-LEVEL RENDER ----
   return (
     <div className="App" style={{ background: "var(--bg-primary)", minHeight: '100vh' }}>
+      {/* Header, with game selection tabs */}
       <header className="ttt-header" style={{
         margin: "0 auto",
         background: COLORS.main,
         color: "#fff",
         width: "100%",
-        padding: "16px 0",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+        padding: "0 0 0 0",
+        boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+        borderBottom: "4px solid #fff17644"
       }}>
-        <h1 style={{
-          margin: 0,
-          fontWeight: 700,
-          letterSpacing: "2px",
-          fontSize: "clamp(1.5rem, 3vw, 2.5rem)"
-        }}>
-          Tic Tac Toe Classic
-        </h1>
+        {/* GAME SELECTOR TABS */}
+        <div
+          style={{
+            display: "flex",
+            width: "100%",
+            flexDirection: "row",
+            alignItems: "center",
+            background: COLORS.main,
+            padding: "0 0 0 0",
+          }}
+        >
+          {/* Tab Buttons */}
+          <button
+            className="ttt-btn"
+            aria-pressed={selectedGame === "tictactoe"}
+            onClick={() => setSelectedGame("tictactoe")}
+            style={{
+              background: selectedGame === "tictactoe" ? "#fff176" : COLORS.main,
+              color: selectedGame === "tictactoe" ? COLORS.main : "#fff",
+              fontWeight: 800,
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0,
+              margin: "0 4px 0 0",
+              borderBottom: selectedGame === "tictactoe" ? "4px solid #fff176" : "none",
+              borderRight: "0.5px solid #fff4",
+              fontSize: "1.07rem",
+              minWidth: 112,
+              minHeight: 38,
+              boxShadow: selectedGame === "tictactoe" ? "0 6px 22px #fff17619" : "none",
+              transition: "background 0.23s, color 0.18s"
+            }}
+          >
+            Tic Tac Toe
+          </button>
+          <button
+            className="ttt-btn"
+            aria-pressed={selectedGame === "snake"}
+            onClick={() => setSelectedGame("snake")}
+            style={{
+              background: selectedGame === "snake" ? "#fff176" : COLORS.main,
+              color: selectedGame === "snake" ? COLORS.main : "#fff",
+              fontWeight: 800,
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0,
+              margin: "0",
+              borderBottom: selectedGame === "snake" ? "4px solid #fff176" : "none",
+              minWidth: 112,
+              minHeight: 38,
+              boxShadow: selectedGame === "snake" ? "0 6px 22px #fff17619" : "none",
+              transition: "background 0.23s, color 0.18s"
+            }}
+          >
+            Snake
+          </button>
+          <span style={{ flex: 1 }} />
+        </div>
+        {/* Title and subtitle */}
         <div style={{
-          marginTop: 8,
-          fontSize: "1rem",
-          color: COLORS.secondary,
-          fontWeight: 400
+          margin: "0 auto",
+          background: COLORS.main,
+          color: "#fff",
+          width: "100%",
+          padding: "4px 0 6px 0",
         }}>
-          Play against {mode === MODES.SINGLE ? "the Computer" : "a Friend"}
+          <h1 style={{
+            margin: 0,
+            fontWeight: 700,
+            letterSpacing: "2px",
+            fontSize: "clamp(1.3rem, 3vw, 2.1rem)"
+          }}>
+            {selectedGame === "tictactoe" ? "Tic Tac Toe Classic" : "Snake Game"}
+          </h1>
+          <div style={{
+            marginTop: 5,
+            fontSize: "1rem",
+            color: COLORS.secondary,
+            fontWeight: 400
+          }}>
+            {selectedGame === "tictactoe"
+              ? `Play against ${mode === MODES.SINGLE ? "the Computer" : "a Friend"}`
+              : `Eat food, grow the snake!`}
+          </div>
         </div>
       </header>
 
-      <main className="ttt-main" style={{
-        maxWidth: 400, margin: "24px auto", display: "flex", flexDirection: "column", alignItems: "center",
-      }}>
-        {/* Game/Score Panel */}
-        <div style={{
-          width: "100%",
+      {/* MAIN: Either Tic Tac Toe pane, or Snake Game (full view) */}
+      <main className="ttt-main"
+        style={{
+          maxWidth: 430,
+          margin: "24px auto",
           display: "flex",
-          gap: 6,
-          justifyContent: "space-between",
+          flexDirection: "column",
           alignItems: "center",
-          marginBottom: 16
+          minHeight: 440,
+          width: "98vw"
         }}>
-          {/* Mode toggle */}
-          <div>
-            <button
-              className={`ttt-btn ${mode === MODES.SINGLE ? 'mode-selected' : ''}`}
-              style={{ background: mode === MODES.SINGLE ? COLORS.accent : COLORS.main, color: "#fff", marginRight: 4 }}
-              onClick={() => handleChangeMode(MODES.SINGLE)}
-              aria-pressed={mode === MODES.SINGLE}
-            >
-              Single
-            </button>
-            <button
-              className={`ttt-btn ${mode === MODES.TWO ? 'mode-selected' : ''}`}
-              style={{ background: mode === MODES.TWO ? COLORS.accent : COLORS.main, color: "#fff" }}
-              onClick={() => handleChangeMode(MODES.TWO)}
-              aria-pressed={mode === MODES.TWO}
-            >
-              Two
-            </button>
-          </div>
-          
-          {/* Score Display */}
-          <div className="ttt-score-box" style={{
-            background: COLORS.secondary,
-            color: COLORS.main,
-            borderRadius: 8,
-            minWidth: 100,
-            textAlign: "center",
-            padding: "4px 10px",
-            fontWeight: 500,
-            fontSize: "1.05rem"
-          }}>
-            X: {scores.X} &nbsp; O: {scores.O} &nbsp; T: {scores.ties}
-          </div>
-        </div>
+        {selectedGame === "tictactoe" && (
+          <>
+            {/* Game/Score Panel */}
+            <div style={{
+              width: "100%",
+              display: "flex",
+              gap: 6,
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 16
+            }}>
+              {/* Mode toggle */}
+              <div>
+                <button
+                  className={`ttt-btn ${mode === MODES.SINGLE ? 'mode-selected' : ''}`}
+                  style={{ background: mode === MODES.SINGLE ? COLORS.accent : COLORS.main, color: "#fff", marginRight: 4 }}
+                  onClick={() => handleChangeMode(MODES.SINGLE)}
+                  aria-pressed={mode === MODES.SINGLE}
+                >
+                  Single
+                </button>
+                <button
+                  className={`ttt-btn ${mode === MODES.TWO ? 'mode-selected' : ''}`}
+                  style={{ background: mode === MODES.TWO ? COLORS.accent : COLORS.main, color: "#fff" }}
+                  onClick={() => handleChangeMode(MODES.TWO)}
+                  aria-pressed={mode === MODES.TWO}
+                >
+                  Two
+                </button>
+              </div>
 
-        {/* Player status */}
-        <div
-          className="ttt-status-panel"
-          style={{
-            fontWeight: 600,
-            marginBottom: 12,
-            fontSize: "1.18rem"
-          }}>
-          {getStatusText()}
-        </div>
+              {/* Score Display */}
+              <div className="ttt-score-box" style={{
+                background: COLORS.secondary,
+                color: COLORS.main,
+                borderRadius: 8,
+                minWidth: 100,
+                textAlign: "center",
+                padding: "4px 10px",
+                fontWeight: 500,
+                fontSize: "1.05rem"
+              }}>
+                X: {scores.X} &nbsp; O: {scores.O} &nbsp; T: {scores.ties}
+              </div>
+            </div>
 
-        {/* 3x3 Board */}
-        <div
-          className={`ttt-board${showNewGameAnim ? " ttt-fade-in" : ""}`}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: 4,
-            background: "var(--bg-secondary)",
-            borderRadius: 14,
-            boxShadow: "0 4px 20px rgba(32,34,72,0.04)",
-            padding: 8,
-            marginBottom: 18,
-            transition: "box-shadow 0.2s"
-          }}
-        >
-          {squares.map((square, idx) => (
-            <button
-              key={idx}
-              className="ttt-cell"
-              aria-label={`cell ${idx+1}`}
-              onClick={() => {
-                // Only allow move if not computer's turn (single mode)
-                if (mode === MODES.SINGLE && !xIsNext && !gameOver) return;
-                handleMove(idx);
-              }}
-              disabled={!!square || gameOver}
+            {/* Player status */}
+            <div
+              className="ttt-status-panel"
               style={{
-                height: 76,
-                width: 76,
-                maxWidth: "28vw",
-                maxHeight: "28vw",
-                fontSize: "2.3rem",
-                fontWeight: 700,
-                color: !square ? COLORS.main
-                  : square === 'X' ? COLORS.main : COLORS.accent,
-                background: "#fff",
-                border: `2.5px solid ${COLORS.main}`,
-                borderRadius: 10,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: !!square ? "0 2px 6px rgba(0,0,0,0.07)" : "none",
-                opacity: !!square || gameOver ? 0.94 : 1,
-                cursor: !!square || gameOver ? "default" : "pointer",
-                transition: "background 0.2s, color 0.25s, border 0.18s, opacity 0.32s"
+                fontWeight: 600,
+                marginBottom: 12,
+                fontSize: "1.18rem"
+              }}>
+              {getStatusText()}
+            </div>
+
+            {/* 3x3 Board */}
+            <div
+              className={`ttt-board${showNewGameAnim ? " ttt-fade-in" : ""}`}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 4,
+                background: "var(--bg-secondary)",
+                borderRadius: 14,
+                boxShadow: "0 4px 20px rgba(32,34,72,0.04)",
+                padding: 8,
+                marginBottom: 18,
+                transition: "box-shadow 0.2s"
               }}
             >
-              {square}
-            </button>
-          ))}
-        </div>
+              {squares.map((square, idx) => (
+                <button
+                  key={idx}
+                  className="ttt-cell"
+                  aria-label={`cell ${idx + 1}`}
+                  onClick={() => {
+                    if (mode === MODES.SINGLE && !xIsNext && !gameOver) return;
+                    handleMove(idx);
+                  }}
+                  disabled={!!square || gameOver}
+                  style={{
+                    height: 76,
+                    width: 76,
+                    maxWidth: "28vw",
+                    maxHeight: "28vw",
+                    fontSize: "2.3rem",
+                    fontWeight: 700,
+                    color: !square ? COLORS.main
+                      : square === 'X' ? COLORS.main : COLORS.accent,
+                    background: "#fff",
+                    border: `2.5px solid ${COLORS.main}`,
+                    borderRadius: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: !!square ? "0 2px 6px rgba(0,0,0,0.07)" : "none",
+                    opacity: !!square || gameOver ? 0.94 : 1,
+                    cursor: !!square || gameOver ? "default" : "pointer",
+                    transition: "background 0.2s, color 0.25s, border 0.18s, opacity 0.32s"
+                  }}
+                >
+                  {square}
+                </button>
+              ))}
+            </div>
 
-        {/* Controls for game */}
-        <div className="ttt-controls" style={{
-          display: "flex", gap: 12, justifyContent: "center"
-        }}>
-          <button
-            className="ttt-btn"
-            style={{
-              background: COLORS.main,
-              color: "#fff",
-              fontWeight: 600
-            }}
-            onClick={handleRestart}
-          >
-            Restart
-          </button>
-          <button
-            className="ttt-btn"
-            style={{
-              background: COLORS.accent,
-              color: "#fff",
-              fontWeight: 600
-            }}
-            onClick={handleNewGame}
-          >
-            New Game
-          </button>
-        </div>
+            {/* Controls for game */}
+            <div className="ttt-controls" style={{
+              display: "flex", gap: 12, justifyContent: "center"
+            }}>
+              <button
+                className="ttt-btn"
+                style={{
+                  background: COLORS.main,
+                  color: "#fff",
+                  fontWeight: 600
+                }}
+                onClick={handleRestart}
+              >
+                Restart
+              </button>
+              <button
+                className="ttt-btn"
+                style={{
+                  background: COLORS.accent,
+                  color: "#fff",
+                  fontWeight: 600
+                }}
+                onClick={handleNewGame}
+              >
+                New Game
+              </button>
+            </div>
+          </>
+        )}
+
+        {selectedGame === "snake" && (
+          // SNAKE GAME (full game UI)
+          <SnakeGame />
+        )}
       </main>
 
       <footer className="ttt-footer" style={{
@@ -350,7 +437,9 @@ function App() {
         fontSize: "0.98rem",
         opacity: 0.7
       }}>
-        Tic Tac Toe &middot; Powered by React &middot; Classic Mode
+        {selectedGame === "tictactoe"
+          ? "Tic Tac Toe · Powered by React · Classic Mode"
+          : "Snake · Powered by React · Classic Arcade"}
       </footer>
     </div>
   );

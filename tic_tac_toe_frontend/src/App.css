@@ -159,7 +159,63 @@
     font-size: 0.98rem !important;
     padding: 2px 6px !important;
   }
+  /* Snake grid responsive */
+  .snake-board {
+    min-width: 88vw !important;
+    min-height: 48vw !important;
+    max-width: 97vw !important;
+    font-size: 4vw !important;
+  }
+  .snake-game-root {
+    padding: 2vw 0 4vw 0 !important;
+  }
 }
+
+.snake-game-root {
+  background: var(--bg-primary);
+  border-radius: 15px;
+  width: 100%;
+  margin: 0 auto;
+  max-width: 455px;
+  box-shadow: 0 0 24px #1976d216;
+  padding: 10px 0 20px 0;
+  transition: background 0.22s;
+}
+
+.snake-board {
+  outline: none;
+  margin: 0 auto;
+  margin-bottom: 12px;
+  box-shadow: 0 6px 16px #2223;
+  border-radius: 12px;
+  border: 2.5px solid #1976d2;
+  background: var(--bg-secondary);
+  min-width: 315px;
+  min-height: 315px;
+  max-width: 420px;
+  max-height: 420px;
+  transition: background 0.22s, border 0.18s;
+}
+
+/* Custom Snake board cell tweaks */
+.snake-board > div {
+  box-sizing: border-box;
+}
+
+/* Snake Game Buttons - use TTT styles */
+.snake-controls .ttt-btn {
+  margin: 0 2px;
+}
+
+/* Status message style for Snake */
+.snake-status {
+  font-size: 1.17rem;
+  color: #d32f2f;
+  margin: 10px 0;
+  font-weight: 700;
+}
+
+/* -- End Snake Game styles -- */
 
 
 .App-logo {
